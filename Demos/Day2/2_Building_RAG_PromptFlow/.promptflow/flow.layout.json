@@ -1,0 +1,60 @@
+{
+  "orientation": "Vertical",
+  "nodeLayouts": {
+    "inputs": {
+      "x": 417,
+      "y": 62,
+      "index": -1
+    },
+    "outputs": {
+      "x": 472,
+      "y": 832,
+      "index": -1
+    },
+    "generate_prompt_context": {
+      "x": 417,
+      "y": 502,
+      "height": 75,
+      "index": 0
+    },
+    "Prompt_variants": {
+      "x": 472,
+      "y": 612,
+      "height": 75,
+      "index": 1
+    },
+    "answer_the_question_with_context": {
+      "x": 472,
+      "y": 722,
+      "height": 75,
+      "index": 2
+    },
+    "Rerankdocs": {
+      "x": 417,
+      "y": 392,
+      "height": 75,
+      "index": 3
+    },
+    "Lookup_Custom": {
+      "x": 362,
+      "y": 282,
+      "height": 75,
+      "index": 4
+    },
+    "queryembed": {
+      "x": 362,
+      "y": 172,
+      "index": 5
+    }
+  },
+  "viewport": {
+    "transformMatrix": [
+      1,
+      0,
+      0,
+      1,
+      -366.85833740234375,
+      -443.1000061035156
+    ]
+  }
+}

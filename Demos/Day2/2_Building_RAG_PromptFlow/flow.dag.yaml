@@ -1,9 +1,5 @@
 id: bring_your_own_data_qna
 name: Bring Your Own Data QnA
-environment_variables:  # Set Promptflow Specific Environment Variables
-  BUILD_INFO: '{"build_number": "local-pytest"}'
-environment:
-  python_requirements_txt: requirements.txt
 inputs:
   question:
     type: string
@@ -14,55 +10,6 @@ outputs:
     type: string
     reference: ${answer_the_question_with_context.output}
 nodes:
-- name: Lookup
-  type: python
-  source:
-    type: package
-    tool: promptflow_vectordb.tool.common_index_lookup.search
-  inputs:
-    mlindex_content: >
-      embeddings:
-        api_base: https://lytiq-gpt4-swe.openai.azure.com
-        api_type: azure
-        api_version: 2023-07-01-preview
-        batch_size: '16'
-        connection:
-          id: 
-            /subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourceGroups/rg-artusai/providers/Microsoft.MachineLearningServices/workspaces/artus-test-project/connections/lytiq-gpt4-swe
-        connection_type: workspace_connection
-        deployment: text-embedding-ada-002
-        dimension: 1536
-        file_format_version: '2'
-        kind: open_ai
-        model: text-embedding-ada-002
-        schema_version: '2'
-      index:
-        api_version: 2024-05-01-preview
-        connection:
-          id: 
-            /subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourceGroups/rg-artusai/providers/Microsoft.MachineLearningServices/workspaces/artus-test-project/connections/artusaisearch
-        connection_type: workspace_connection
-        endpoint: https://artus-ai-search.search.windows.net/
-        engine: azure-sdk
-        field_mapping:
-          content: content
-          embedding: contentVector
-          filename: filepath
-          metadata: meta_json_string
-          title: title
-          url: url
-        index: elated-leg-k3mmbv8rqj
-        kind: acs
-        semantic_configuration_name: azureml-default
-      self:
-        path: 
-          azureml://subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourcegroups/rg-artusai/workspaces/artus-test-project/datastores/workspaceblobstore/paths/azureml/7f3c2ee7-b1e8-4682-9cee-1c5f429339ae/index/
-        asset_id: 
-          azureml://locations/swedencentral/workspaces/b0aaa8de-1d49-4a52-b368-79518770678b/data/elated-leg-k3mmbv8rqj/versions/1
-    queries: ${inputs.question}
-    query_type: Hybrid (vector + keyword)
-    top_k: 5
-  aggregation: false
 - name: generate_prompt_context
   type: python
   source:
@@ -72,7 +19,14 @@ nodes:
     search_result: ${Rerankdocs.output}
   use_variants: false
 - name: Prompt_variants
-  use_variants: true
+  type: prompt
+  source:
+    type: code
+    path: Prompt_variants.jinja2
+  inputs:
+    contexts: ${generate_prompt_context.output}
+    question: ${inputs.question}
+  use_variants: false
 - name: answer_the_question_with_context
   type: llm
   source:
@@ -101,37 +55,28 @@ nodes:
   inputs:
     query: ${inputs.question}
     ranker_parameters: '{"ranker_type":"Scaled Score Fusion","ssf_rank_constant":60}'
-    result_groups: ${Lookup.output}
+    result_groups: ${Lookup_Custom.output}
     top_k: 3
   use_variants: false
-node_variants:
-  Prompt_variants:
-    default_variant_id: variant_0
-    variants:
-      variant_0:
-        node:
-          type: prompt
-          source:
-            type: code
-            path: Prompt_variants.jinja2
-          inputs:
-            contexts: ${generate_prompt_context.output}
-            question: ${inputs.question}
-      variant_1:
-        node:
-          type: prompt
-          source:
-            type: code
-            path: Prompt_variants__variant_1.jinja2
-          inputs:
-            contexts: ${generate_prompt_context.output}
-            question: ${inputs.question}
-      variant_2:
-        node:
-          type: prompt
-          source:
-            type: code
-            path: Prompt_variants__variant_2.jinja2
-          inputs:
-            contexts: ${generate_prompt_context.output}
-            question: ${inputs.question}
+- name: Lookup_Custom
+  type: python
+  source:
+    type: code
+    path: Lookup_Custom.py
+  inputs:
+    k: 5
+    query_embedding: ${queryembed.output}
+  use_variants: false
+- name: queryembed
+  type: python
+  source:
+    type: package
+    tool: promptflow.tools.embedding.embedding
+  inputs:
+    connection: lytiq-gpt4-swe
+    deployment_name: text-embedding-ada-002
+    input: ${inputs.question}
+  use_variants: false
+node_variants: {}
+environment:
+  python_requirements_txt: requirements.txt

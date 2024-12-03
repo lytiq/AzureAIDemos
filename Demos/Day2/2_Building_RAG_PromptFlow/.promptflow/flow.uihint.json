@@ -1,0 +1,51 @@
+{
+  "nodes": {
+    "queryembed": {
+      "variant_0": {
+        "inputs": {},
+        "inputsValue": {}
+      }
+    },
+    "generate_prompt_context": {
+      "variant_0": {
+        "inputs": {},
+        "inputsValue": {}
+      }
+    },
+    "Prompt_variants": {
+      "variant_0": {
+        "inputs": {},
+        "inputsValue": {}
+      }
+    },
+    "answer_the_question_with_context": {
+      "variant_0": {
+        "inputs": {},
+        "inputsValue": {}
+      }
+    },
+    "Rerankdocs": {
+      "variant_0": {
+        "inputs": {
+          "ranker_type": [
+            {
+              "display_value": "Scaled Score Fusion",
+              "value": "Scaled Score Fusion"
+            }
+          ],
+          "serverless_deployment": []
+        },
+        "inputsValue": {
+          "ranker_type": "Scaled Score Fusion",
+          "ssf_rank_constant": "60"
+        }
+      }
+    },
+    "Lookup_Custom": {
+      "variant_0": {
+        "inputs": {},
+        "inputsValue": {}
+      }
+    }
+  }
+}

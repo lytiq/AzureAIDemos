@@ -1,0 +1,92 @@
+inputs:
+  question:
+    type: string
+    default: How to use SDK V2?
+    is_chat_input: false
+outputs:
+  output:
+    type: string
+    reference: ${answer_the_question_with_context.output}
+    evaluation_only: false
+    is_chat_output: false
+nodes:
+- name: lookup
+  type: python
+  source:
+    type: package
+    tool: promptflow_vectordb.tool.common_index_lookup.search
+  inputs:
+    mlindex_content: "embeddings:\n  api_base: https://lytiq-gpt4-swe.openai.azure.com\n  api_type: azure\n  api_version: 2023-07-01-preview\n  batch_size: '16'\n  connection:\n    id: \n      /subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourceGroups/rg-artusai/providers/Microsoft.MachineLearningServices/workspaces/artus-test-project/connections/lytiq-gpt4-swe\n  connection_type: workspace_connection\n  deployment: text-embedding-ada-002\n  dimension: 1536\n  file_format_version: '2'\n  kind: open_ai\n  model: text-embedding-ada-002\n  schema_version: '2'\nindex:\n  api_version: 2024-05-01-preview\n  connection:\n    id: \n      /subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourceGroups/rg-artusai/providers/Microsoft.MachineLearningServices/workspaces/artus-test-project/connections/artusaisearch\n  connection_type: workspace_connection\n  endpoint: https://artus-ai-search.search.windows.net/\n  engine: azure-sdk\n  field_mapping:\n    content: content\n    embedding: contentVector\n    filename: filepath\n    metadata: meta_json_string\n    title: title\n    url: url\n  index: elated-leg-k3mmbv8rqj\n  kind: acs\n  semantic_configuration_name: azureml-default\nself:\n  path: \n    azureml://subscriptions/a22d290f-6b14-4261-9e77-673b57de80f9/resourcegroups/rg-artusai/workspaces/artus-test-project/datastores/workspaceblobstore/paths/azureml/7f3c2ee7-b1e8-4682-9cee-1c5f429339ae/index/\n  asset_id: \n    azureml://locations/swedencentral/workspaces/b0aaa8de-1d49-4a52-b368-79518770678b/data/elated-leg-k3mmbv8rqj/versions/1\n"
+    queries: "${inputs.question}"
+    query_type: "Hybrid (vector + keyword)"
+    top_k: 5
+  aggregation: false
+- name: generate_prompt_context
+  type: python
+  source:
+    type: code
+    path: generate_prompt_context.py
+  inputs:
+    search_result: "${Rerankdocs.output}"
+  aggregation: false
+- name: answer_the_question_with_context
+  type: llm
+  source:
+    type: code
+    path: answer_the_question_with_context.jinja2
+  inputs:
+    deployment_name: "gpt-35-turbo16k"
+    temperature: 0
+    top_p: 1
+    max_tokens: 1000
+    response_format:
+      type: text
+    presence_penalty: 0
+    frequency_penalty: 0
+    prompt_text: "${Prompt_variants.output}"
+  api: chat
+  provider: AzureOpenAI
+  connection: lytiq-gpt4-swe
+  module: promptflow.tools.aoai
+  aggregation: false
+- name: Rerankdocs
+  type: python
+  source:
+    type: package
+    tool: promptflow_vectordb.tool.rerank.rerank
+  inputs:
+    query: "${inputs.question}"
+    ranker_parameters: "{\"ranker_type\":\"Scaled Score Fusion\",\"ssf_rank_constant\":60}"
+    result_groups: "${Lookup_Custom.output}"
+    top_k: 3
+  aggregation: false
+- name: Lookup_Custom
+  type: python
+  source:
+    type: code
+    path: Lookup_Custom.py
+  inputs:
+    k: 5
+    query_embedding: "${queryembed.output}"
+  aggregation: false
+- name: queryembed
+  type: python
+  source:
+    type: package
+    tool: promptflow.tools.embedding.embedding
+  inputs:
+    connection: "lytiq-gpt4-swe"
+    deployment_name: "text-embedding-ada-002"
+    input: "${inputs.question}"
+  aggregation: false
+- name: Prompt_variants
+  type: prompt
+  source:
+    type: code
+    path: Prompt_variants.jinja2
+  inputs:
+    contexts: "${generate_prompt_context.output}"
+    question: "${inputs.question}"
+  aggregation: false
+environment:
+  python_requirements_txt: requirements.txt
